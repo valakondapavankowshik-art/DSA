@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWM Speed Control Simulation</title>
+    <!-- Include Chart.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h2 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            background: #eef2f7;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .control-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        .control-group input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            grid-column: 1 / -1;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .output-box {
+            background: #212529;
+            color: #00ffcc;
+            padding: 15px;
+            font-family: monospace;
+            border-radius: 6px;
+            margin-bottom: 25px;
+            white-space: pre-line;
+            font-size: 14px;
+        }
+        .chart-container {
+            position: relative;
+            margin-bottom: 30px;
+            height: 300px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Closed-Loop PWM Speed Control Simulation</h2>
+    
+    <!-- Input Controls -->
+    <div class="controls">
+        <div class="control-group">
+            <label for="maxRpm">Max RPM (Reference):</label>
+            <input type="number" id="maxRpm" value="4000">
+        </div>
+        <div class="control-group">
+            <label for="maxVoltage">Max Voltage (V):</label>
+            <input type="number" id="maxVoltage" value="24">
+        </div>
+        <div class="control-group">
+            <label for="targetRpm">Target RPM:</label>
+            <input type="number" id="targetRpm" value="1500">
+        </div>
+        <button onclick="runSimulation()">Update Simulation</button>
+    </div>
+
+    <!-- Text Terminal Output -->
+    <div id="terminalOutput" class="output-box"></div>
+
+    <!-- Charts -->
+    <div class="chart-container">
+        <canvas id="rpmChart"></canvas>
+    </div>
+    <div class="chart-container">
+        <canvas id="pwmChart"></canvas>
+    </div>
+</div>
+
+<script>
+    let rpmChartInstance = null;
+    let pwmChartInstance = null;
+
+    function runSimulation() {
+        const MAX_RPM = parseFloat(document.getElementById('maxRpm').value);
+        const MAX_VOLTAGE = parseFloat(document.getElementById('maxVoltage').value);
+        const TARGET_RPM = parseFloat(document.getElementById('targetRpm').value);
+
+        // Calculations
+        const TARGET_VOLTAGE = (TARGET_RPM / MAX_RPM) * MAX_VOLTAGE;
+        const DUTY_CYCLE = (TARGET_VOLTAGE / MAX_VOLTAGE) * 100;
+        const PWM_VALUE = Math.round((DUTY_CYCLE / 100) * 255);
+
+        // Simulate RPM Response over time (extended to 12 seconds so it fully settles)
+        const timeSteps = 100;
+        const maxTime = 12;
+        const time = [];
+        const rpm = [];
+        let finalRpm = 0;
+
+        for (let i = 0; i <= timeSteps; i++) {
+            let t = (i / timeSteps) * maxTime;
+            time.push(t.toFixed(2));
+            let currentRpm = TARGET_RPM * (1 - Math.exp(-t / 1.5));
+            if (currentRpm > TARGET_RPM) currentRpm = TARGET_RPM;
+            rpm.push(currentRpm);
+            finalRpm = currentRpm;
+        }
+
+        // Status check
+        let statusText = "=".repeat(55) + "\n";
+        statusText += "            CLOSED-LOOP PWM SPEED CONTROL\n";
+        statusText += "=".repeat(55) + "\n";
+        statusText += `Reference Speed       : ${MAX_RPM} RPM\n`;
+        statusText += `Reference Voltage     : ${MAX_VOLTAGE} V\n`;
+        statusText += "-".repeat(55) + "\n";
+        statusText += `Target Speed          : ${TARGET_RPM} RPM\n`;
+        statusText += `Required Control      : ${TARGET_VOLTAGE.toFixed(2)} V\n`;
+        statusText += `PWM Duty Cycle        : ${DUTY_CYCLE.toFixed(2)}%\n`;
+        statusText += `8-bit PWM Value       : ${PWM_VALUE}/255\n`;
+        statusText += "-".repeat(55) + "\n";
+
+        if (finalRpm >= TARGET_RPM * 0.99) {
+            statusText += `STATUS                : TARGET RPM REACHED\n`;
+            statusText += `ACTUAL SPEED          : ${Math.round(finalRpm)} RPM\n`;
+            statusText += `CONTROL STATUS        : STABLE\n`;
+        } else {
+            statusText += `STATUS                : TARGET RPM NOT REACHED\n`;
+        }
+        statusText += "=".repeat(55);
+
+        document.getElementById('terminalOutput').innerText = statusText;
+
+        // --- Render RPM Response Chart ---
+        const rpmCtx = document.getElementById('rpmChart').getContext('2d');
+        if (rpmChartInstance) rpmChartInstance.destroy();
+
+        rpmChartInstance = new Chart(rpmCtx, {
+            type: 'line',
+            data: {
+                labels: time,
+                datasets: [
+                    {
+                        label: 'Motor Speed (RPM)',
+                        data: rpm,
+                        borderColor: '#007bff',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: false
+                    },
+                    {
+                        label: `Target = ${TARGET_RPM} RPM`,
+                        data: Array(time.length).fill(TARGET_RPM),
+                        borderColor: '#dc3545',
+                        borderDash: [5, 5],
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: { display: true, text: `Motor Speed Response – Target ${TARGET_RPM} RPM` }
+                },
+                scales: {
+                    x: { title: { display: true, text: 'Time (seconds)' } },
+                    y: { title: { display: true, text: 'Motor Speed (RPM)' }, min: 0, max: Math.max(MAX_RPM * 0.5, TARGET_RPM + 200) }
+                }
+            }
+        });
+
+        // --- Render PWM Waveform Chart ---
+        const frequency = 1000;
+        const period = 1 / frequency;
+        const cycles = 3;
+        const pwmTime = [];
+        const pwmVoltage = [];
+        const resolution = 200;
+
+        for (let c = 0; c < cycles; c++) {
+            for (let i = 0; i < resolution; i++) {
+                let tFraction = i / resolution;
+                let tMs = (c * period + tFraction * period) * 1000;
+                pwmTime.push(tMs.toFixed(3));
+                
+                let isHigh = tFraction < (DUTY_CYCLE / 100);
+                pwmVoltage.push(isHigh ? MAX_VOLTAGE : 0);
+            }
+        }
+
+        const pwmCtx = document.getElementById('pwmChart').getContext('2d');
+        if (pwmChartInstance) pwmChartInstance.destroy();
+
+        pwmChartInstance = new Chart(pwmCtx, {
+            type: 'line',
+            data: {
+                labels: pwmTime,
+                datasets: [{
+                    label: 'PWM Voltage (V)',
+                    data: pwmVoltage,
+                    borderColor: '#28a745',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    stepped: true,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: { display: true, text: `PWM Output — Duty Cycle = ${DUTY_CYCLE.toFixed(2)}%` }
+                },
+                scales: {
+                    x: { title: { display: true, text: 'Time (ms)' } },
+                    y: { title: { display: true, text: 'Voltage (V)' }, min: -2, max: MAX_VOLTAGE + 3 }
+                }
+            }
+        });
+    }
+
+    window.onload = runSimulation;
+</script>
+
+</body>
+</html>

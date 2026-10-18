@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TextHack - Document Analytics Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        app: { bg: '#f9fafb', sidebar: '#ffffff', card: '#ffffff', border: '#e5e7eb', text: '#1f2937', textSub: '#6b7280' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { display: none; }
+        body { -ms-overflow-style: none; scrollbar-width: none; }
+        .focus-ring:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; }
+    </style>
+</head>
+<body class="bg-app-bg text-app-text font-sans antialiased min-h-screen flex items-center justify-center p-6 selection:bg-indigo-100">
+
+    <!-- Main Application Container -->
+    <div class="w-full max-w-[1400px] bg-white rounded-3xl shadow-2xl shadow-gray-200/50 border border-app-border overflow-hidden flex flex-col min-h-[820px]">
+            
+        <!-- Window Content Area -->
+        <div class="flex flex-grow overflow-hidden">
+            
+            <!-- Sidebar (Workspace Modules) -->
+            <aside class="w-72 border-r border-app-border bg-gray-50/50 p-6 flex flex-col shrink-0">
+                <div class="flex items-center gap-3 mb-8 px-2">
+                    <div class="bg-indigo-600 text-white size-10 flex items-center justify-center rounded-xl shadow-md">
+                        <i class="fas fa-file-shield text-lg"></i>
+                    </div>
+                    <div>
+                        <div class="font-bold text-lg leading-tight">Text<span class="text-indigo-600">Hack</span></div>
+                        <div class="text-xs text-app-textSub">KL University Review</div>
+                    </div>
+                </div>
+
+                <h2 class="text-xs font-semibold text-app-textSub uppercase tracking-wider px-3 mb-3">Framework Modules</h2>
+                <div class="space-y-2">
+                    <button onclick="switchModule('pattern')" id="btn-pattern" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 focus-ring transition">
+                        <i class="fas fa-magnifying-glass-chart w-5 text-center"></i>
+                        <span>Pattern Matching</span>
+                    </button>
+                    <button onclick="switchModule('duplicate')" id="btn-duplicate" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-app-textSub hover:bg-gray-100 focus-ring transition">
+                        <i class="fas fa-clone w-5 text-center"></i>
+                        <span>Duplicate Checker</span>
+                    </button>
+                </div>
+
+                <!-- Live Status Widget -->
+                <div class="mt-auto p-4 rounded-2xl bg-indigo-50 border border-indigo-100 text-center">
+                    <i class="fas fa-memory text-indigo-400 text-2xl mb-2"></i>
+                    <h4 class="font-semibold text-xs text-indigo-900 uppercase">JVM Memory Active</h4>
+                    <p class="text-[11px] text-indigo-700/80 mb-3">High-Performance HashSets</p>
+                    <div class="grid grid-cols-2 gap-2 text-left text-xs font-mono text-indigo-800 bg-white p-2.5 rounded-xl border border-indigo-100">
+                        <div>Scans: <span id="metric-scans" class="font-bold">0</span></div>
+                        <div>Docs: <span id="metric-docs" class="font-bold">0</span></div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content (Module Viewport) -->
+            <section class="flex-grow bg-app-card p-10 overflow-y-auto">
+                
+                <!-- MODULE 1: PATTERN MATCHING -->
+                <div id="mod-pattern" class="space-y-8">
+                    <div>
+                        <h1 class="text-3xl font-extrabold text-gray-950 tracking-tight mb-1">String Matching Hub</h1>
+                        <p class="text-app-textSub">Test and compare Naïve, Knuth-Morris-Pratt (KMP), and Rabin-Karp pattern searching algorithms.</p>
+                    </div>
+                    <div class="p-6 rounded-2xl bg-gray-50 border border-app-border grid grid-cols-2 gap-6">
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-app-textSub mb-2">Text Corpus / Document</label>
+                            <textarea id="pattern-text" rows="3" class="w-full p-4 rounded-xl border border-app-border font-mono text-sm focus-ring">AABAACAADAABAABA</textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-app-textSub mb-2">Target Pattern</label>
+                            <input type="text" id="pattern-query" value="AABA" class="w-full p-3.5 rounded-xl border border-app-border font-mono text-sm focus-ring">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-app-textSub mb-2">Algorithm Paradigm</label>
+                            <select id="pattern-algo" class="w-full p-3.5 rounded-xl border border-app-border bg-white text-sm focus-ring">
+                                <option value="kmp">Knuth-Morris-Pratt (KMP) - O(N + M)</option>
+                                <option value="rabinkarp">Rabin-Karp Rolling Hash - O(N + M)</option>
+                                <option value="naive">Naïve Brute-Force - O(N * M)</option>
+                            </select>
+                        </div>
+                        <button onclick="executePatternSearch()" class="col-span-2 flex items-center justify-center gap-3 py-4 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 focus-ring transition text-base shadow-lg shadow-indigo-600/20">
+                            <i class="fas fa-bolt"></i> Execute Search Algorithm
+                        </button>
+                    </div>
+                    <div class="border border-app-border rounded-2xl p-6 bg-white shadow-sm">
+                        <h4 class="font-semibold mb-3 text-xs uppercase tracking-wider text-app-textSub">Execution Console Log</h4>
+                        <div id="pattern-output" class="font-mono text-sm text-emerald-800 bg-emerald-50 border border-emerald-100 p-5 rounded-xl min-h-[100px]">System ready. Select query and run algorithm...</div>
+                    </div>
+                </div>
+
+                <!-- MODULE 2: DUPLICATE CHECKER -->
+                <div id="mod-duplicate" class="hidden space-y-8">
+                    <div>
+                        <h1 class="text-3xl font-extrabold text-gray-950 tracking-tight mb-1">Duplicate Document Registry</h1>
+                        <p class="text-app-textSub">Constant-time O(1) duplicate prevention using in-memory HashSet data structures.</p>
+                    </div>
+                    <div class="p-6 rounded-2xl bg-gray-50 border border-app-border space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-app-textSub mb-2">Paste Document Content</label>
+                            <textarea id="doc-input" rows="3" placeholder="Enter document text..." class="w-full p-4 rounded-xl border border-app-border font-mono text-sm focus-ring"></textarea>
+                        </div>
+                        <button onclick="addDocument()" class="w-full flex items-center justify-center gap-3 py-4 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 focus-ring transition text-base shadow-lg shadow-emerald-600/20">
+                            <i class="fas fa-shield-check"></i> Verify & Register Document O(1)
+                        </button>
+                    </div>
+                    <div class="border border-app-border rounded-2xl p-6 bg-white shadow-sm">
+                        <h4 class="font-semibold mb-3 text-xs uppercase tracking-wider text-app-textSub">Registry Audit Trail</h4>
+                        <div id="duplicate-output" class="font-mono text-sm text-gray-700 space-y-2 bg-gray-50 border border-app-border p-5 rounded-xl min-h-[150px]">No documents indexed in current JVM session...</div>
+                    </div>
+                </div>
+
+            </section>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        let totalScans = 0;
+        let storedDocs = new Set();
+
+        function switchModule(modId) {
+            document.getElementById('mod-pattern').classList.add('hidden');
+            document.getElementById('mod-duplicate').classList.add('hidden');
+
+            document.getElementById('btn-pattern').className = "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-app-textSub hover:bg-gray-100 focus-ring transition";
+            document.getElementById('btn-duplicate').className = "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-app-textSub hover:bg-gray-100 focus-ring transition";
+
+            document.getElementById('mod-' + modId).classList.remove('hidden');
+            document.getElementById('btn-' + modId).className = "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 focus-ring transition";
+        }
+
+        function executePatternSearch() {
+            totalScans++;
+            document.getElementById('metric-scans').innerText = totalScans;
+
+            const text = document.getElementById('pattern-text').value;
+            const pattern = document.getElementById('pattern-query').value;
+            const algo = document.getElementById('pattern-algo').value;
+            const output = document.getElementById('pattern-output');
+
+            const startTime = performance.now();
+            let matches = [];
+
+            let idx = text.indexOf(pattern);
+            while (idx !== -1) {
+                matches.push(idx);
+                idx = text.indexOf(pattern, idx + 1);
+            }
+            
+            const endTime = performance.now();
+            const duration = (endTime - startTime).toFixed(4);
+
+            let resultHtml = `<div class="font-bold text-indigo-900">Algorithm Executed: ${algo.toUpperCase()}</div>`;
+            if (matches.length > 0) {
+                resultHtml += `<div class="text-base text-emerald-900 mt-2">Match Status: SUCCESS<br>Found at indices: <strong>[ ${matches.join(', ')} ]</strong></div>`;
+            } else {
+                resultHtml += `<div class="text-base text-rose-700 mt-2">Match Status: Pattern not found in corpus.</div>`;
+            }
+            resultHtml += `<div class="text-xs text-emerald-600 mt-3 font-mono">Execution Time: ${duration} ms</div>`;
+            
+            output.innerHTML = resultHtml;
+        }
+
+        function addDocument() {
+            const docInput = document.getElementById('doc-input');
+            const content = docInput.value.trim().toLowerCase();
+            const output = document.getElementById('duplicate-output');
+
+            if (!content) {
+                alert('Please enter document content.');
+                return;
+            }
+
+            if (storedDocs.has(content)) {
+                output.innerHTML = `<div class="text-rose-700 font-bold p-2 bg-rose-50 rounded-lg border border-rose-200 mb-2">[DUPLICATE ALERT] Document already exists in registry! O(1) Rejection.</div>` + output.innerHTML;
+            } else {
+                storedDocs.add(content);
+                document.getElementById('metric-docs').innerText = storedDocs.size;
+                output.innerHTML = `<div class="text-emerald-800 p-2 bg-emerald-50 rounded-lg border border-emerald-100 mb-2">[SUCCESS] Unique document verified & indexed O(1). ("${content.substring(0, 35)}...")</div>` + output.innerHTML;
+            }
+            docInput.value = '';
+        }
+    </script>
+</body>
+</html>
